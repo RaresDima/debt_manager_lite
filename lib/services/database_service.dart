@@ -102,9 +102,22 @@ class DatabaseService {
     _invalidateUserMap();
   }
 
+  Future<void> updateUser(User user) async {
+    assert (user.id != null, 'DatabaseService::updateUser() : User must have a non-null id');
+    final Database db = await _instance.database;
+    Map<String, dynamic> row = { _TableUsers.name: user.name };
+    db.update(
+      _TableUsers.tableName, 
+      row,
+      where: 'id = ?',
+      whereArgs: [user.id]
+    );
+    _invalidateUserMap();
+  }
+
   Future<void> insertDebt(Debt debt) async {
-    assert(debt.lender.id != null, 'Lender id must not be null');
-    assert(debt.debtor.id != null, 'Debtor id must not be null');
+    assert(debt.lender.id != null, 'DatabaseService::insertDebt() : Lender id must not be null');
+    assert(debt.debtor.id != null, 'DatabaseService::insertDebt() : Debtor id must not be null');
     final Database db = await _instance.database;
     Map<String, dynamic> row = {
       _TableDebts.lenderId: debt.lender.id!,
@@ -121,6 +134,24 @@ class DatabaseService {
     _invalidateDebtMap();
   }
 
+  Future<void> updateDebt(Debt debt) async {
+    assert (debt.id != null, 'DatabaseService::updateDebt() : Debt must have a non-null id');
+    final Database db = await _instance.database;
+    Map<String, dynamic> row = {
+      _TableDebts.lenderId: debt.lender.id!,
+      _TableDebts.debtorId: debt.debtor.id!,
+      _TableDebts.amount  : debt.amount,
+      _TableDebts.type    : debt.type.index,
+      _TableDebts.date    : debt.date.toIso8601String()
+    };
+    db.update(
+      _TableDebts.tableName, 
+      row,
+      where: 'id = ?',
+      whereArgs: [debt.id]
+    );
+    _invalidateDebtMap();
+  }
 }
 
 class _DatabaseUtils {
@@ -163,7 +194,6 @@ class _DatabaseUtils {
     await db.execute(tableUsers);
     await db.execute(tableDebts);
   }
-  
 }
 
 class _TableUsers {
