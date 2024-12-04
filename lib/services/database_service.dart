@@ -30,20 +30,20 @@ class DatabaseService {
     assert(debt.debtor.id != null, 'Debtor id must not be null');
 
     final Database db = await _instance.database;
-    Map<String, dynamic> row = {'lenderId': debt.lender.id!,
-                                'debtorId': debt.debtor.id!,
-                                'amount'  : debt.amount,
-                                'type'    : debt.type.value,
-                                'date'    : debt.date};
-    
+    Map<String, dynamic> row = {
+      'lenderId': debt.lender.id!,
+      'debtorId': debt.debtor.id!,
+      'amount'  : debt.amount,
+      'type'    : debt.type.value,
+      'date'    : debt.date.toIso8601String()
+    };
+
     db.insert(
       'users', 
       row,
       conflictAlgorithm: ConflictAlgorithm.abort
     );
   }
-
-
 }
 
 class _DatabaseUtils {
