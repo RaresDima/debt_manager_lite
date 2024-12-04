@@ -2,10 +2,10 @@
 
 ## To Do
 
-- [ ] Database
-    - [ ] Creade Database
-    - [ ] CRUD Users
-    - [ ] CRUD Debts
+- [X] Database
+    - [X] Create Database
+    - [X] CRUD Users
+    - [X] CRUD Debts
 - [ ] Add Calendar view
 - [ ] Add Debt
     - [ ] Add User
