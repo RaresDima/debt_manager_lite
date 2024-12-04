@@ -124,6 +124,7 @@ class DatabaseService {
     _invalidateUserMap();
   }
 
+  /// Updated by id
   Future<void> updateUser(User user) async {
     assert (user.id != null, 'DatabaseService::updateUser() : User must have a non-null id');
     final Database db = await _instance.database;
@@ -136,6 +137,18 @@ class DatabaseService {
     );
     _invalidateUserMap();
     _invalidateMainUser();
+  }
+
+  /// Deleted by id
+  Future<void> deleteUser(User user) async {
+    assert (user.id != (await mainUser).id, 'Cannot delete main user [$user]');
+    final Database db = await _instance.database;
+    db.delete(
+      _TableUsers.tableName, 
+      where: '${_TableUsers.id} = ?',
+      whereArgs: [user.id]
+    );
+    _invalidateUserMap();
   }
 
   Future<void> insertDebt(Debt debt) async {
@@ -157,6 +170,7 @@ class DatabaseService {
     _invalidateDebtMap();
   }
 
+  /// Updated by id
   Future<void> updateDebt(Debt debt) async {
     assert (debt.id != null, 'DatabaseService::updateDebt() : Debt must have a non-null id');
     final Database db = await _instance.database;
@@ -174,6 +188,17 @@ class DatabaseService {
       whereArgs: [debt.id]
     );
     _invalidateDebtMap();
+  }
+
+  /// Deleted by id
+  Future<void> deleteDebt(Debt debt) async {
+    final Database db = await _instance.database;
+    db.delete(
+      _TableDebts.tableName, 
+      where: '${_TableDebts.id} = ?',
+      whereArgs: [debt.id]
+    );
+    _invalidateUserMap();
   }
 }
 
