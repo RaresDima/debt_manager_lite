@@ -18,3 +18,5 @@
     - [ ] Send SMS
         - [ ] Get Contacts
 - [ ] Non-Symmetrical Debt ???
+- [ ] Settings
+    - [ ] Toggle: Auto-Scroll to next month if day of next month tapped
