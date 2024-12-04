@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'dart:async';
-import 'package:path/path.dart';
-import 'package:sqflite/sqflite.dart';
-
 import 'package:debt_manager_lite/view/calendar_page.dart';
 
 void main() {
