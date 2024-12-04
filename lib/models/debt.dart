@@ -1,11 +1,15 @@
 part of 'models.dart';
 
 enum DebtType {
-  gave(1),
-  splitCost(2);
+  gave(0),
+  splitCost(1);
 
-  final int value;
-  const DebtType(this.value);
+  const DebtType(int value);
+  factory DebtType.fromValue(int value) {
+    if (value == DebtType.gave.index)      return DebtType.gave;
+    if (value == DebtType.splitCost.index) return DebtType.splitCost;
+    throw AssertionError('DebtType value out of range ($value)');
+  }
 }
 
 class Debt {

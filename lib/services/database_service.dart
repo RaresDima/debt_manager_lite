@@ -11,48 +11,123 @@ class DatabaseService {
   static Database? _database;
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _DatabaseUtils._initDatabase();
+    _database = await _DatabaseUtils.initDatabase();
     return _database!;
   }
 
+  Map<dynamic, User>? _users;
+  /// Supports users[id] and users[name]
+  Future<Map<dynamic, User>> get users async {
+    _users ??= await _getUserMap();
+    return _users!;
+  }
+
+  Map<dynamic, Debt>? _debts;
+  /// Supports debts[id], debts[lender], debts[debtor], debts[type], debts[date]
+  Future<Map<dynamic, Debt>> get debts async {
+    _debts ??= await _getDebtMap();
+    return _debts!;
+  }
+
+  Future<Map<dynamic, User>> _getUserMap() async {
+    final List<User> users = await _getUsers();
+    Map<dynamic, User> userMap = <dynamic, User>{};
+    for (User user in users) {
+      userMap[user.id!] = user;
+      userMap[user.name] = user;
+    }
+    return userMap;
+  }
+
+  Future<Map<dynamic, Debt>> _getDebtMap() async {
+    final List<Debt> debts = await _getDebts();
+    Map<dynamic, Debt> debtMap = <dynamic, Debt>{};
+    for (Debt debt in debts) {
+      debtMap[debt.id!] = debt;
+      debtMap[debt.lender] = debt;
+      debtMap[debt.debtor] = debt;
+      debtMap[debt.type] = debt;
+      debtMap[debt.date] = debt;
+    }
+    return debtMap;
+  }
+
+  void _invalidateUserMap() { 
+    _users = null; 
+  }
+
+  void _invalidateDebtMap() { 
+    _debts = null; 
+  }
+
+  Future<List<User>> _getUsers() async {
+    final Database db = await _instance.database;
+    final List<Map<String, dynamic>> dbUsers = await db.query(_TableUsers.tableName);
+    final List<User> users = List.generate(
+      dbUsers.length, 
+      (i) => User(
+        id:   dbUsers[i][_TableUsers.id], 
+        name: dbUsers[i][_TableUsers.name]
+      )
+    );
+    return users;
+  }
+
+  Future<List<Debt>> _getDebts() async {
+    final Database db = await _instance.database;
+    final List<Map<String, dynamic>> dbDebts = await db.query(_TableDebts.tableName);
+    final Map<dynamic, User> users = await this.users;
+    final List<Debt> debts = List.generate(
+      dbDebts.length, 
+      (i) => Debt(
+        id:     dbDebts[i][_TableDebts.id],
+        lender: users[dbDebts[i][_TableDebts.lenderId]]!,
+        debtor: users[dbDebts[i][_TableDebts.debtorId]]!,
+        amount: dbDebts[i][_TableDebts.amount],
+        type:   DebtType.fromValue(dbDebts[i][_TableDebts.type]),
+        date:   DateTime.parse(dbDebts[i][_TableDebts.date])
+      )
+    );
+    return debts;
+  }
+  
   Future<void> insertUser(User user) async {
     final Database db = await _instance.database;
-    Map<String, dynamic> row = {'name': user.name};
+    Map<String, dynamic> row = { _TableUsers.name: user.name };
     db.insert(
-      'users', 
+      _TableUsers.tableName, 
       row,
       conflictAlgorithm: ConflictAlgorithm.abort
     );
+    _invalidateUserMap();
   }
 
   Future<void> insertDebt(Debt debt) async {
     assert(debt.lender.id != null, 'Lender id must not be null');
     assert(debt.debtor.id != null, 'Debtor id must not be null');
-
     final Database db = await _instance.database;
     Map<String, dynamic> row = {
-      'lenderId': debt.lender.id!,
-      'debtorId': debt.debtor.id!,
-      'amount'  : debt.amount,
-      'type'    : debt.type.value,
-      'date'    : debt.date.toIso8601String()
+      _TableDebts.lenderId: debt.lender.id!,
+      _TableDebts.debtorId: debt.debtor.id!,
+      _TableDebts.amount  : debt.amount,
+      _TableDebts.type    : debt.type.index,
+      _TableDebts.date    : debt.date.toIso8601String()
     };
-
     db.insert(
-      'users', 
+      _TableDebts.tableName, 
       row,
       conflictAlgorithm: ConflictAlgorithm.abort
     );
+    _invalidateDebtMap();
   }
+
 }
 
 class _DatabaseUtils {
   static final String _dbFileName = 'debt_manager.db';
   static final int    _dbVersion  = 1;
 
-  static final _DatabaseSchema _dbSchema = _DatabaseSchema();
-
-  static Future<Database> _initDatabase() async {
+  static Future<Database> initDatabase() async {
     String dbDir = await getDatabasesPath();
     String dbPath = join(dbDir, _dbFileName);
     Database db = await openDatabase(
@@ -65,59 +140,44 @@ class _DatabaseUtils {
   }
 
   static Future<void> _onCreateDatabase(Database db, int version) async {
-    
+
     String tableUsers = (
-      'CREATE TABLE users('
-      'id INTEGER PRIMARY KEY ASC, '
-      'name TEXT UNIQUE, '
+      'CREATE TABLE ${_TableUsers.tableName}('
+      '${_TableUsers.id} INTEGER PRIMARY KEY ASC, '
+      '${_TableUsers.name} TEXT UNIQUE, '
       ')'
     );
 
     String tableDebts = (
-      'CREATE TABLE debts('
-      'id INTEGER PRIMARY KEY ASC, '
-      'lenderId INTEGER REFERENCES users ON UPDATE CASCADE ON DELETE CASCADE,'
-      'debtorId INTEGER REFERENCES users ON UPDATE CASCADE ON DELETE CASCADE, '
-      'amount REAL, '
-      'type INTEGER, '
-      'date TEXT'
+      'CREATE TABLE ${_TableDebts.tableName}('
+      '${_TableDebts.id} INTEGER PRIMARY KEY ASC, '
+      '${_TableDebts.lenderId} INTEGER REFERENCES users ON UPDATE CASCADE ON DELETE CASCADE,'
+      '${_TableDebts.debtorId} INTEGER REFERENCES users ON UPDATE CASCADE ON DELETE CASCADE, '
+      '${_TableDebts.amount} REAL, '
+      '${_TableDebts.type} INTEGER, '
+      '${_TableDebts.date} TEXT, '
+      'CHECK (${_TableDebts.lenderId} != ${_TableDebts.debtorId}), '
+      'CHECK (${_TableDebts.type} BETWEEN 0 AND ${DebtType.values.length-1})'
       ')'
     );
-
     await db.execute(tableUsers);
     await db.execute(tableDebts);
   }
-}
-
-class _DatabaseSchema {
-  final _Tables tables = _Tables();
-}
-
-class _Tables {
-  final _TableUsers users = _TableUsers();
-  final _TableDebts debts = _TableDebts();
+  
 }
 
 class _TableUsers {
-  final String name = 'users';
-  final _TableUsersColumns columns = _TableUsersColumns();
-}
-
-class _TableUsersColumns {
-  final String id   = 'id';
-  final String name = 'name';
+  static final String tableName = 'users';
+  static final String id        = 'id';
+  static final String name      = 'name';
 }
 
 class _TableDebts {
-  final String name = 'debts';
-  final _TableDebtsColumns columns = _TableDebtsColumns();
-}
-
-class _TableDebtsColumns {
-  final String id       = 'id';
-  final String lenderId = 'lenderId';
-  final String debtorId = 'debtorId';
-  final String amount   = 'amount';
-  final String type     = 'type';
-  final String date     = 'date';
+  static final String tableName = 'debts';
+  static final String id        = 'id';
+  static final String lenderId  = 'lenderId';
+  static final String debtorId  = 'debtorId';
+  static final String amount    = 'amount';
+  static final String type      = 'type';
+  static final String date      = 'date';
 }
