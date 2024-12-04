@@ -1,8 +1,5 @@
+import 'package:debt_manager_lite/models/models.dart';
 import 'package:flutter/material.dart';
-
-import 'dart:async';
-import 'package:path/path.dart';
-import 'package:sqflite/sqflite.dart';
 
 import 'package:debt_manager_lite/view/calendar_page.dart';
 
@@ -15,6 +12,8 @@ class DebtManagerLiteApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    print('============');
+    print(DateTime.parse(DateTime.now().toIso8601String()));
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
