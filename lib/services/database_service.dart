@@ -29,6 +29,12 @@ class DatabaseService {
     return _debts!;
   }
 
+  User? _mainUser;
+  Future<User> get mainUser async {
+    _mainUser ??= await _getMainUser();
+    return _mainUser!;
+  }
+
   Future<Map<dynamic, User>> _getUserMap() async {
     final List<User> users = await _getUsers();
     Map<dynamic, User> userMap = <dynamic, User>{};
@@ -52,6 +58,18 @@ class DatabaseService {
     return debtMap;
   }
 
+  Future<User> _getMainUser() async {
+    final Database db = await _instance.database;
+    final List<Map<String, dynamic>> dbMainUser = await db.query(
+      _TableMainUser.tableName,
+      where: '${_TableMainUser.id} = 1'
+    );
+    final int mainUserId = dbMainUser[0][_TableMainUser.id];
+    final Map<dynamic, User> users = await this.users; 
+    final User mainUser = users[mainUserId]!;
+    return mainUser;
+  }
+
   void _invalidateUserMap() { 
     _users = null; 
   }
@@ -60,14 +78,18 @@ class DatabaseService {
     _debts = null; 
   }
 
+  void _invalidateMainUser() { 
+    _mainUser = null; 
+  }
+
   Future<List<User>> _getUsers() async {
     final Database db = await _instance.database;
     final List<Map<String, dynamic>> dbUsers = await db.query(_TableUsers.tableName);
     final List<User> users = List.generate(
       dbUsers.length, 
       (i) => User(
-        id:   dbUsers[i][_TableUsers.id], 
-        name: dbUsers[i][_TableUsers.name]
+        id:         dbUsers[i][_TableUsers.id], 
+        name:       dbUsers[i][_TableUsers.name],
       )
     );
     return users;
@@ -90,7 +112,7 @@ class DatabaseService {
     );
     return debts;
   }
-  
+
   Future<void> insertUser(User user) async {
     final Database db = await _instance.database;
     Map<String, dynamic> row = { _TableUsers.name: user.name };
@@ -109,10 +131,11 @@ class DatabaseService {
     db.update(
       _TableUsers.tableName, 
       row,
-      where: 'id = ?',
+      where: '${_TableUsers.id} = ?',
       whereArgs: [user.id]
     );
     _invalidateUserMap();
+    _invalidateMainUser();
   }
 
   Future<void> insertDebt(Debt debt) async {
@@ -120,11 +143,11 @@ class DatabaseService {
     assert(debt.debtor.id != null, 'DatabaseService::insertDebt() : Debtor id must not be null');
     final Database db = await _instance.database;
     Map<String, dynamic> row = {
-      _TableDebts.lenderId: debt.lender.id!,
-      _TableDebts.debtorId: debt.debtor.id!,
-      _TableDebts.amount  : debt.amount,
-      _TableDebts.type    : debt.type.index,
-      _TableDebts.date    : debt.date.toIso8601String()
+      _TableDebts.lenderId : debt.lender.id!,
+      _TableDebts.debtorId : debt.debtor.id!,
+      _TableDebts.amount   : debt.amount,
+      _TableDebts.type     : debt.type.index,
+      _TableDebts.date     : debt.date.toIso8601String()
     };
     db.insert(
       _TableDebts.tableName, 
@@ -147,7 +170,7 @@ class DatabaseService {
     db.update(
       _TableDebts.tableName, 
       row,
-      where: 'id = ?',
+      where: '${_TableDebts.id} = ?',
       whereArgs: [debt.id]
     );
     _invalidateDebtMap();
@@ -171,35 +194,50 @@ class _DatabaseUtils {
   }
 
   static Future<void> _onCreateDatabase(Database db, int version) async {
-
     String tableUsers = (
       'CREATE TABLE ${_TableUsers.tableName}('
       '${_TableUsers.id} INTEGER PRIMARY KEY ASC, '
-      '${_TableUsers.name} TEXT UNIQUE, '
+      '${_TableUsers.name} TEXT UNIQUE NOT NULL'
       ')'
     );
-
+    String tableMainUser = (
+      'CREATE TABLE ${_TableMainUser.tableName}('
+      '${_TableMainUser.id} INTEGER PRIMARY KEY ASC, '
+      '${_TableMainUser.mainUserId} INTEGER NOT NULL REFERENCES users ON UPDATE CASCADE ON DELETE CASCADE, '
+      'CHECK (${_TableMainUser.id} = 1)'
+    );
     String tableDebts = (
       'CREATE TABLE ${_TableDebts.tableName}('
       '${_TableDebts.id} INTEGER PRIMARY KEY ASC, '
-      '${_TableDebts.lenderId} INTEGER REFERENCES users ON UPDATE CASCADE ON DELETE CASCADE,'
-      '${_TableDebts.debtorId} INTEGER REFERENCES users ON UPDATE CASCADE ON DELETE CASCADE, '
-      '${_TableDebts.amount} REAL, '
-      '${_TableDebts.type} INTEGER, '
-      '${_TableDebts.date} TEXT, '
+      '${_TableDebts.lenderId} INTEGER NOT NULL REFERENCES users ON UPDATE CASCADE ON DELETE CASCADE,'
+      '${_TableDebts.debtorId} INTEGER NOT NULL REFERENCES users ON UPDATE CASCADE ON DELETE CASCADE, '
+      '${_TableDebts.amount} REAL NOT NULL, '
+      '${_TableDebts.type} INTEGER NOT NULL, '
+      '${_TableDebts.date} TEXT NOT NULL, '
       'CHECK (${_TableDebts.lenderId} != ${_TableDebts.debtorId}), '
       'CHECK (${_TableDebts.type} BETWEEN 0 AND ${DebtType.values.length-1})'
       ')'
     );
+    
     await db.execute(tableUsers);
+    await db.execute(tableMainUser);
     await db.execute(tableDebts);
+
+    db.insert(_TableUsers.tableName, { _TableUsers.name: '%mainUser%' }, conflictAlgorithm: ConflictAlgorithm.abort);
+    db.insert(_TableMainUser.tableName, { _TableMainUser.mainUserId: 1 }, conflictAlgorithm: ConflictAlgorithm.abort);
   }
 }
 
 class _TableUsers {
-  static final String tableName = 'users';
-  static final String id        = 'id';
-  static final String name      = 'name';
+  static final String tableName  = 'users';
+  static final String id         = 'id';
+  static final String name       = 'name';
+}
+
+class _TableMainUser {
+  static final String tableName  = 'mainUser';
+  static final String id         = 'id';
+  static final String mainUserId = 'mainUserId';
 }
 
 class _TableDebts {
