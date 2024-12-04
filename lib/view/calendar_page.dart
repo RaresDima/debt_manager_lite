@@ -64,7 +64,7 @@ class _CalendarPageState extends State<CalendarPage> {
                   final String text = DateFormat.E().format(day);
                   TextStyle textStyle = TextStyle(color: Colors.black);
                   if (day.weekday == DateTime.saturday || day.weekday == DateTime.sunday) {
-                    textStyle = TextStyle(color: Colors.red);
+                    textStyle = textStyle.copyWith(color: Colors.red);
                   }
                   return Center(
                     child: Text(
@@ -77,7 +77,7 @@ class _CalendarPageState extends State<CalendarPage> {
                   final String text = day.day.toString();
                   TextStyle textStyle = TextStyle(color: Colors.black);
                   if (day.weekday == DateTime.saturday || day.weekday == DateTime.sunday) {
-                    textStyle = TextStyle(color: Colors.red);
+                    textStyle = textStyle.copyWith(color: Colors.red);
                   }
                   return Center(
                     child: Text(
@@ -90,7 +90,7 @@ class _CalendarPageState extends State<CalendarPage> {
                   final String text = day.day.toString();
                   TextStyle textStyle = TextStyle(color: Colors.grey);
                   if (day.weekday == DateTime.saturday || day.weekday == DateTime.sunday) {
-                    textStyle = TextStyle(color: Colors.red.shade200);
+                    textStyle = textStyle.copyWith(color: Colors.red.shade200);
                   }
                   return Center(
                     child: Text(
@@ -99,7 +99,44 @@ class _CalendarPageState extends State<CalendarPage> {
                     ),
                   );
                 },
-                // headerTitleBuilder: (context, day) { return Text('a'); }  // Month + Year header
+                todayBuilder: (context, day, focusedDay) {  // Regular non-special days in the current month
+                  final String text = day.day.toString();
+                  TextStyle textStyle = TextStyle(color: Colors.black);
+                  if (day.weekday == DateTime.saturday || day.weekday == DateTime.sunday) {
+                    textStyle = textStyle.copyWith(color: Colors.red);
+                  }
+                  return Card.outlined(
+                    child: Center(
+                      child: Text(
+                        text,
+                        style: textStyle,
+                      ),
+                    ),
+                  );
+                },
+                selectedBuilder: (context, day, focusedDay) {  // Regular non-special days in the current month
+                  final String text = day.day.toString();
+                  TextStyle textStyle = TextStyle(color: Colors.black);
+                  if (focusedDay.month != day.month) {
+                    textStyle = textStyle.copyWith(color: Colors.grey);
+                  }
+                  if (day.weekday == DateTime.saturday || day.weekday == DateTime.sunday) {
+                    if (focusedDay.month == day.month) {
+                    textStyle = textStyle.copyWith(color: Colors.red);
+                    }
+                    else {
+                      textStyle = textStyle.copyWith(color: Colors.red.shade200);
+                    }
+                  }
+                  return Card.filled(
+                    child: Center(
+                      child: Text(
+                        text,
+                        style: textStyle,
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
             Text('You have pushed the button this many times:'),
