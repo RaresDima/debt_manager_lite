@@ -18,6 +18,7 @@ class Debt {
   final User debtor;
   final double amount;
   final DebtType type;
+  final String description;
   final DateTime date;
 
   const Debt({
@@ -26,6 +27,7 @@ class Debt {
     required this.debtor,
     required this.amount,
     required this.type,
+    required this.description,
     required this.date
   });
 }

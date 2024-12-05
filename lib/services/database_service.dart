@@ -102,12 +102,13 @@ class DatabaseService {
     final List<Debt> debts = List.generate(
       dbDebts.length, 
       (i) => Debt(
-        id:     dbDebts[i][_TableDebts.id],
-        lender: users[dbDebts[i][_TableDebts.lenderId]]!,
-        debtor: users[dbDebts[i][_TableDebts.debtorId]]!,
-        amount: dbDebts[i][_TableDebts.amount],
-        type:   DebtType.fromValue(dbDebts[i][_TableDebts.type]),
-        date:   DateTime.parse(dbDebts[i][_TableDebts.date])
+        id:          dbDebts[i][_TableDebts.id],
+        lender:      users[dbDebts[i][_TableDebts.lenderId]]!,
+        debtor:      users[dbDebts[i][_TableDebts.debtorId]]!,
+        amount:      dbDebts[i][_TableDebts.amount],
+        type:        DebtType.fromValue(dbDebts[i][_TableDebts.type]),
+        description: dbDebts[i][_TableDebts.description],
+        date:        DateTime.parse(dbDebts[i][_TableDebts.date])
       )
     );
     return debts;
@@ -156,11 +157,12 @@ class DatabaseService {
     assert(debt.debtor.id != null, 'DatabaseService::insertDebt() : Debtor id must not be null');
     final Database db = await _instance.database;
     Map<String, dynamic> row = {
-      _TableDebts.lenderId : debt.lender.id!,
-      _TableDebts.debtorId : debt.debtor.id!,
-      _TableDebts.amount   : debt.amount,
-      _TableDebts.type     : debt.type.index,
-      _TableDebts.date     : debt.date.toIso8601String()
+      _TableDebts.lenderId    : debt.lender.id!,
+      _TableDebts.debtorId    : debt.debtor.id!,
+      _TableDebts.amount      : debt.amount,
+      _TableDebts.type        : debt.type.index,
+      _TableDebts.description : debt.description,
+      _TableDebts.date        : debt.date.toIso8601String()
     };
     db.insert(
       _TableDebts.tableName, 
@@ -175,11 +177,12 @@ class DatabaseService {
     assert (debt.id != null, 'DatabaseService::updateDebt() : Debt must have a non-null id');
     final Database db = await _instance.database;
     Map<String, dynamic> row = {
-      _TableDebts.lenderId: debt.lender.id!,
-      _TableDebts.debtorId: debt.debtor.id!,
-      _TableDebts.amount  : debt.amount,
-      _TableDebts.type    : debt.type.index,
-      _TableDebts.date    : debt.date.toIso8601String()
+      _TableDebts.lenderId    : debt.lender.id!,
+      _TableDebts.debtorId    : debt.debtor.id!,
+      _TableDebts.amount      : debt.amount,
+      _TableDebts.type        : debt.type.index,
+      _TableDebts.description : debt.description,
+      _TableDebts.date        : debt.date.toIso8601String()
     };
     db.update(
       _TableDebts.tableName, 
@@ -238,6 +241,7 @@ class _DatabaseUtils {
       '${_TableDebts.debtorId} INTEGER NOT NULL REFERENCES users ON UPDATE CASCADE ON DELETE CASCADE, '
       '${_TableDebts.amount} REAL NOT NULL, '
       '${_TableDebts.type} INTEGER NOT NULL, '
+      '${_TableDebts.description} TEXT NOT NULL, '
       '${_TableDebts.date} TEXT NOT NULL, '
       'CHECK (${_TableDebts.lenderId} != ${_TableDebts.debtorId}), '
       'CHECK (${_TableDebts.type} BETWEEN 0 AND ${DebtType.values.length-1})'
@@ -266,11 +270,12 @@ class _TableMainUser {
 }
 
 class _TableDebts {
-  static final String tableName = 'debts';
-  static final String id        = 'id';
-  static final String lenderId  = 'lenderId';
-  static final String debtorId  = 'debtorId';
-  static final String amount    = 'amount';
-  static final String type      = 'type';
-  static final String date      = 'date';
+  static final String tableName   = 'debts';
+  static final String id          = 'id';
+  static final String lenderId    = 'lenderId';
+  static final String debtorId    = 'debtorId';
+  static final String amount      = 'amount';
+  static final String type        = 'type';
+  static final String description = 'description';
+  static final String date        = 'date';
 }
